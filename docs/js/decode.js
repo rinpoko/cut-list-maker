@@ -86,7 +86,41 @@ async function demux(file, onProgress) {
 
   if (!samples.length) throw new Error('フレームを取り出せませんでした');
   samples.sort((a, b) => a.cts - b.cts);
-  return { mp4, track, samples };
+  return { mp4, track, samples, timing: timingOf(samples, track) };
+}
+
+/**
+ * フレームレートと尺を、コンテナのヘッダではなく実際のサンプルから求める。
+ *
+ * 断片化 MP4（ブラウザの録画や配信用の書き出し）では moov の尺が 0 や
+ * でたらめな値になっていることがあり、それを信じると fps が桁違いになって
+ * カット検出もタイムコードも壊れる。サンプルの間隔なら必ず正しい。
+ */
+function timingOf(samples, track) {
+  const timescale = samples[0].timescale || track.timescale || 1000;
+
+  // 等間隔でないフレームが混ざっていても引きずられないよう中央値を使う
+  const deltas = [];
+  for (let i = 1; i < samples.length; i++) {
+    const delta = samples[i].cts - samples[i - 1].cts;
+    if (delta > 0) deltas.push(delta);
+  }
+  deltas.sort((a, b) => a - b);
+  const median = deltas.length ? deltas[Math.floor(deltas.length / 2)] : 0;
+
+  let fps = median > 0 ? timescale / median : 0;
+
+  const last = samples[samples.length - 1];
+  let duration = (last.cts + (last.duration || median) - samples[0].cts) / timescale;
+
+  // サンプルから出せなかったときだけコンテナの値に頼る
+  if (!(fps > 0.5 && fps < 1000)) {
+    const declared = track.duration / (track.timescale || timescale);
+    fps = declared > 0.1 ? samples.length / declared : 25;
+  }
+  if (!(duration > 0)) duration = samples.length / fps;
+
+  return { fps, duration, timescale };
 }
 
 /* ------------------------------------------------------------ 公開 API */
@@ -95,15 +129,12 @@ async function demux(file, onProgress) {
  * 動画のメタ情報を調べる。{width,height,fps,duration,frames,codec}
  */
 export async function probe(file) {
-  const { mp4, track, samples } = await demux(file);
-  const timescale = track.timescale;
-  const duration = track.duration / timescale;
-  const fps = samples.length > 1 && duration > 0 ? samples.length / duration : 25;
+  const { mp4, track, samples, timing } = await demux(file);
   const info = {
     width: track.video.width,
     height: track.video.height,
-    fps,
-    duration,
+    fps: timing.fps,
+    duration: timing.duration,
     frames: samples.length,
     codec: track.codec,
   };
@@ -133,8 +164,7 @@ export async function decodeFrames(file, { onFrame, onProgress, wanted = null } 
 
 async function decodeWithWebCodecs(file, { onFrame, onProgress, wanted = null } = {}) {
 
-  const { mp4, track, samples } = await demux(file, onProgress);
-  const timescale = track.timescale;
+  const { mp4, track, samples, timing } = await demux(file, onProgress);
   const description = descriptionFor(mp4, track);
 
   let index = 0;
@@ -213,17 +243,15 @@ async function decodeWithWebCodecs(file, { onFrame, onProgress, wanted = null } 
   if (failed) {
     const err = failed instanceof Error ? failed : new Error(String(failed));
     // 退避側でフレーム番号がずれないよう、分かっている fps を渡す
-    err.hintFps = samples.length > 1 && track.duration > 0
-      ? samples.length / (track.duration / timescale) : 0;
+    err.hintFps = timing.fps;
     throw err;
   }
 
-  const duration = track.duration / timescale;
   return {
     width: track.video.width,
     height: track.video.height,
-    fps: index > 1 && duration > 0 ? index / duration : 25,
-    duration,
+    fps: timing.fps,
+    duration: timing.duration,
     frames: index,
     codec: track.codec,
   };

@@ -1,7 +1,7 @@
 /* オフラインでも開けるようにアプリ本体をキャッシュする。
  * 動画の解析はすべて端末の中で動くので、ネットが必要なのは Gemini を使うときだけ。 */
 
-const CACHE = 'cutlistmaker-v2.0.0';
+const CACHE = 'cutlistmaker-v2.0.1';
 
 const SHELL = [
   './',
