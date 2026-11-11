@@ -1,0 +1,24 @@
+{
+  "name": "Cut List Maker",
+  "short_name": "CutList",
+  "description": "CM動画のカット変わりを検出して、各カットのベストな1枚・ト書き・ナレーション入りのコンテを作ります。",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#ff6c3c",
+  "orientation": "any",
+  "categories": ["productivity", "utilities", "photo"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "file_handlers": [
+    {
+      "action": "./",
+      "accept": { "video/mp4": [".mp4", ".m4v"], "video/quicktime": [".mov"] }
+    }
+  ]
+}

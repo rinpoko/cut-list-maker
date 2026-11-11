@@ -1,0 +1,125 @@
+{
+  "name": "cut-list-maker",
+  "productName": "Cut List Maker",
+  "version": "1.5.0",
+  "description": "CM動画のカットを検出し、ベストな1枚とト書き・コンテPPTXを書き出すアプリ",
+  "main": "desktop/main.js",
+  "author": "CM Cut Grabber",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "backend": "./build_backend.sh",
+    "dist": "./build_backend.sh && electron-builder --mac dmg --arm64",
+    "dist:win": "./build_windows_runtime.sh && electron-builder --win zip --x64 && ./package_windows.sh",
+    "dist:mac": "./build_backend.sh && electron-builder --mac dmg --arm64"
+  },
+  "devDependencies": {
+    "electron": "^40.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0"
+  },
+  "build": {
+    "appId": "com.local.cutlistmaker",
+    "productName": "Cut List Maker",
+    "copyright": "Cut List Maker",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "afterPack": "desktop/afterPack.js",
+    "files": [
+      "desktop/**/*",
+      "package.json",
+      "!node_modules/**/*"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.video",
+      "icon": "build/icon.icns",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "extendInfo": {
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Movie",
+            "CFBundleTypeRole": "Viewer",
+            "LSHandlerRank": "Alternate",
+            "LSItemContentTypes": [
+              "public.movie",
+              "public.audiovisual-content",
+              "public.folder"
+            ]
+          }
+        ]
+      },
+      "extraResources": [
+        {
+          "from": "backend/cutgrab-backend",
+          "to": "backend"
+        },
+        {
+          "from": "node_modules/ffmpeg-static/ffmpeg",
+          "to": "bin/ffmpeg"
+        },
+        {
+          "from": "node_modules/ffprobe-static/bin/darwin/arm64/ffprobe",
+          "to": "bin/ffprobe"
+        }
+      ]
+    },
+    "dmg": {
+      "title": "Cut List Maker",
+      "contents": [
+        {
+          "x": 140,
+          "y": 200,
+          "type": "file"
+        },
+        {
+          "x": 400,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-${version}-win-portable.${ext}",
+      "extraResources": [
+        {
+          "from": "winruntime",
+          "to": "backend"
+        },
+        {
+          "from": "winbin/ffmpeg.exe",
+          "to": "bin/ffmpeg.exe"
+        },
+        {
+          "from": "winbin/ffprobe.exe",
+          "to": "bin/ffprobe.exe"
+        }
+      ]
+    }
+  }
+}

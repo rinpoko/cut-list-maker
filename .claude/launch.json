@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "cutlist-pwa", "runtimeExecutable": "npx", "runtimeArgs": ["--yes", "http-server", "docs", "-p", "8777", "-c-1", "--cors"], "port": 8777 }
+  ]
+}

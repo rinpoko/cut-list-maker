@@ -1,0 +1,12 @@
+node_modules/
+dist/
+backend/
+winruntime/
+winbin/
+.wincache/
+__pycache__/
+*.pyc
+.DS_Store
+docs/__test__/
+docs/__csptest__/
+*.log

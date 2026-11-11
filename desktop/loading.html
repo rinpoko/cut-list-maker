@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Cut List Maker</title>
+<style>
+  :root{ --bg:#f6f7f9; --text:#1d2026; --muted:#6b7280; --accent:#ff6c3c; }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#14161a; --text:#e8eaee; --muted:#98a0ae; } }
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);display:flex;align-items:center;
+       justify-content:center;flex-direction:column;gap:14px;
+       font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+       -webkit-app-region:drag;-webkit-user-select:none}
+  .dot{width:34px;height:34px;border-radius:50%;border:3px solid rgba(128,128,128,.25);
+       border-top-color:var(--accent);animation:spin .9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  h1{font-size:15px;margin:0;font-weight:600}
+  p{margin:0;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+  <div class="dot"></div>
+  <h1>Cut List Maker</h1>
+  <p>起動しています…</p>
+</body>
+</html>

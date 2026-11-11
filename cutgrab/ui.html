@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'">
+<title>Cut List Maker</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --line:#e2e5ea; --text:#1d2026; --muted:#6b7280;
+    --accent:#ff6c3c; --accent-soft:#fff1ec; --ok:#1f9d55; --shadow:0 1px 2px rgba(16,20,30,.06),0 8px 24px rgba(16,20,30,.06);
+    --logbg:#1b1e24; --logfg:#d6dae2;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#14161a; --panel:#1c1f25; --line:#2b2f37; --text:#e8eaee; --muted:#98a0ae;
+           --accent-soft:#3a2119; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+           --logbg:#0f1115; --logfg:#c9cfd9; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 24px 60px}
+  header{display:flex;align-items:baseline;gap:12px;margin-bottom:20px}
+  h1{font-size:20px;margin:0;letter-spacing:.02em}
+  .ver{color:var(--muted);font-size:12px}
+  .sub{color:var(--muted);margin:-14px 0 20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+        padding:18px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .card h2{font-size:13px;margin:0 0 12px;color:var(--muted);font-weight:600;letter-spacing:.06em}
+  #drop{border:2px dashed var(--line);border-radius:12px;padding:30px 18px;text-align:center;
+        color:var(--muted);transition:.15s;cursor:pointer;background:transparent}
+  #drop strong{color:var(--text);display:block;font-size:15px;margin-bottom:4px}
+  #drop.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+  .files{list-style:none;margin:14px 0 0;padding:0}
+  .files li{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);
+            border-radius:9px;margin-bottom:6px;background:var(--bg)}
+  .files .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:1px 8px}
+  button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--text);
+         border-radius:9px;padding:7px 14px;cursor:pointer;transition:.12s}
+  button:hover{border-color:var(--muted)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;padding:10px 22px}
+  button.primary:disabled{opacity:.5;cursor:default}
+  button.mini{padding:3px 9px;font-size:12px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .grid{display:grid;grid-template-columns:180px 1fr;gap:12px 14px;align-items:center}
+  input[type=text],input[type=password],select{font:inherit;padding:7px 10px;border:1px solid var(--line);
+    border-radius:8px;background:var(--bg);color:var(--text);width:100%;max-width:380px}
+  input[type=range]{width:260px;accent-color:var(--accent)}
+  #pptx_cols,#pptx_rows{width:66px}
+  label.inline{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .hint{color:var(--muted);font-size:12px}
+  #bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:14px 0 8px}
+  #bar > div{height:100%;width:0;background:var(--accent);transition:width .25s}
+  #status{color:var(--muted);font-size:13px}
+  #log{background:var(--logbg);color:var(--logfg);border-radius:10px;padding:12px 14px;
+       font-family:"SF Mono",Menlo,monospace;font-size:12px;line-height:1.7;
+       max-height:230px;overflow:auto;white-space:pre-wrap}
+  .shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-top:6px}
+  .shot{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg)}
+  .shot img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;background:#000;cursor:zoom-in}
+  .shot .meta{padding:7px 9px;font-size:12px}
+  .shot .meta b{font-size:12px}
+  .badge{font-size:10px;padding:1px 6px;border-radius:20px;background:var(--accent-soft);color:var(--accent);margin-left:4px}
+  .badge.local{background:var(--line);color:var(--muted)}
+  .reason{color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .narration{font-size:12.5px;line-height:1.5;color:#111;margin-bottom:6px}
+  .direction{font-size:10.5px;line-height:1.5;color:#808080;min-height:2.2em;margin-bottom:4px}
+  .subline{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  details summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.04em}
+  .ok{color:var(--ok)} .ng{color:var(--accent)}
+  #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;
+            justify-content:center;z-index:50;padding:30px}
+  #lightbox img{max-width:100%;max-height:100%;border-radius:6px}
+  /* Electron 版：タイトルバーが透明なので上に余白と、ドラッグできる帯を作る */
+  body.electron .wrap{padding-top:52px}
+  body.electron::before{content:"";position:fixed;top:0;left:0;right:0;height:38px;
+    -webkit-app-region:drag;z-index:40}
+  body.electron .quitrow{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Cut List Maker</h1><span class="ver">v__VERSION__</span>
+  </header>
+
+  <div class="card">
+    <h2>動画</h2>
+    <div id="drop">
+      <strong>ここに動画をドラッグ＆ドロップ</strong>
+      アプリのアイコンに直接ドロップしてもOK／クリックでファイル選択
+    </div>
+    <ul class="files" id="files"></ul>
+    <div class="row" style="margin-top:12px">
+      <button onclick="browse()">ファイルを選ぶ…</button>
+      <button onclick="api('/api/clear')">クリア</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <details open>
+      <summary>設定</summary>
+      <div class="grid" style="margin-top:16px">
+        <div>AI判定</div>
+        <div><label class="inline"><input type="checkbox" id="use_ai"> Gemini に「一番いい瞬間」を選ばせる</label></div>
+
+        <div>Gemini API キー</div>
+        <div class="row">
+          <input type="password" id="api_key" placeholder="キーを貼り付けて「設定」" autocomplete="off">
+          <button class="mini" onclick="applyKey()">設定</button>
+          <button class="mini" onclick="deleteKey()">削除</button>
+          <span id="keystate" class="hint"></span>
+        </div>
+
+        <div>モデル</div>
+        <div class="row">
+          <input type="text" id="model" list="modellist" placeholder="空欄＝使えるモデルを自動選択"
+                 style="max-width:260px">
+          <datalist id="modellist"></datalist>
+          <span class="hint">混雑・未提供のときは自動で次のモデルに切り替えます</span>
+        </div>
+
+        <div>ト書き</div>
+        <div class="row">
+          <label class="inline"><input type="checkbox" id="write_directions">
+            選ばれた絵をAIが見て、CMコンテのト書きを自動生成する</label>
+        </div>
+
+        <div>ナレーション</div>
+        <div class="row">
+          <label class="inline"><input type="checkbox" id="transcribe_narration">
+            音声を聞き取って、ナレーションを各カットに載せる</label>
+        </div>
+
+        <div>カット表Excel</div>
+        <div class="row">
+          <label class="inline"><input type="checkbox" id="export_xlsx">
+            書き出す（クライアントFB・修正ポイント・備考の記入欄つき）</label>
+        </div>
+
+        <div>コンテPPTX</div>
+        <div class="row">
+          <label class="inline"><input type="checkbox" id="export_pptx"> 書き出す</label>
+          <span class="hint">1ページ</span>
+          <select id="pptx_cols">
+            <option value="2">2</option><option value="3">3</option>
+            <option value="4">4</option><option value="5">5</option>
+          </select>
+          <span class="hint">列 ×</span>
+          <select id="pptx_rows">
+            <option value="1">1</option><option value="2">2</option>
+            <option value="3">3</option><option value="4">4</option>
+          </select>
+          <span class="hint">行</span>
+        </div>
+
+        <div>カット検出の細かさ</div>
+        <div class="row">
+          <input type="range" id="sensitivity" min="12" max="45" step="1">
+          <span class="hint" id="senslabel"></span>
+        </div>
+
+        <div>書き出し形式</div>
+        <div class="row">
+          <label class="inline"><input type="radio" name="fmt" value="png"> PNG（無劣化）</label>
+          <label class="inline"><input type="radio" name="fmt" value="jpg"> JPEG（軽い）</label>
+          <label class="inline"><input type="checkbox" id="save_contact_sheet"> 一覧シートも作る</label>
+        </div>
+
+        <div>書き出し後</div>
+        <div><label class="inline"><input type="checkbox" id="open_when_done"> 完了したらフォルダを開く</label></div>
+      </div>
+      <p class="hint" style="margin-bottom:0" id="outhint">
+        書き出し先：<b>書き出しのたびに保存先フォルダをたずねます</b>。
+        選んだフォルダの中に「<b>動画名_カット</b>」フォルダを作ります。
+      </p>
+    </details>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button class="primary" id="run" onclick="start()">カットを書き出す</button>
+      <span id="status"></span>
+    </div>
+    <div id="bar"><div></div></div>
+    <div id="log"></div>
+  </div>
+
+  <div id="results"></div>
+
+  <div class="row quitrow" style="justify-content:flex-end;margin-top:8px">
+    <span class="hint" style="flex:1">このウィンドウを閉じてもアプリは動いたままです（45分で自動終了）。</span>
+    <button class="mini" onclick="if(confirm('アプリを終了しますか？')){api('/api/quit');setTimeout(()=>window.close(),400);}">アプリを終了</button>
+  </div>
+</div>
+
+<div id="lightbox" onclick="this.style.display='none'"><img id="lightimg" alt=""></div>
+<input type="file" id="picker" accept="video/*" multiple hidden>
+
+<script>
+const TOKEN = "__TOKEN__";
+/* Electron 版では、ドロップされた動画の「本当のパス」が取れるのでコピーせずに処理できる */
+const EL = !!(window.cutgrab && window.cutgrab.isElectron);
+let logShown = 0, busy = false, settingsDirty = false;
+let hasKey = false, lastOutputDir = '';
+if (EL) {
+  document.body.classList.add('electron');
+  document.getElementById('drop').innerHTML =
+    '<strong>ここに動画をドラッグ＆ドロップ</strong>Dock のアイコンに直接ドロップしてもOK／クリックでファイル選択';
+  document.getElementById('outhint').innerHTML =
+    '書き出し先：<b>書き出しのたびに保存先フォルダをたずねます</b>。'
+    + '選んだフォルダの中に「<b>動画名_カット</b>」フォルダを作ります。';
+}
+
+function api(path, body){
+  return fetch(path + (path.includes('?') ? '&' : '?') + 't=' + TOKEN, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body || {})
+  }).then(r => r.json());
+}
+function getState(){
+  return fetch('/api/state?t=' + TOKEN + '&since=' + logShown).then(r => r.json());
+}
+
+/* ---------- 設定 ---------- */
+const SENS = v => v <= 20 ? '細かめ（短いカットも拾う）' : (v <= 33 ? '標準' : '粗め（大きな転換のみ）');
+function pushSettings(){
+  const fmt = document.querySelector('input[name=fmt]:checked');
+  const body = {
+    use_ai: document.getElementById('use_ai').checked,
+    model: document.getElementById('model').value.trim(),
+    sensitivity: parseFloat(document.getElementById('sensitivity').value),
+    image_format: fmt ? fmt.value : 'png',
+    save_contact_sheet: document.getElementById('save_contact_sheet').checked,
+    open_when_done: document.getElementById('open_when_done').checked,
+    write_directions: document.getElementById('write_directions').checked,
+    transcribe_narration: document.getElementById('transcribe_narration').checked,
+    export_pptx: document.getElementById('export_pptx').checked,
+    export_xlsx: document.getElementById('export_xlsx').checked,
+    pptx_cols: parseInt(document.getElementById('pptx_cols').value, 10),
+    pptx_rows: parseInt(document.getElementById('pptx_rows').value, 10),
+  };
+  /* API キーは「設定」ボタンを押したときだけ保存する */
+  return api('/api/settings', body);
+}
+function applySettings(s, keySet){
+  if (settingsDirty) return;
+  document.getElementById('use_ai').checked = !!s.use_ai;
+  document.getElementById('model').value = s.model || '';
+  document.getElementById('sensitivity').value = s.sensitivity;
+  document.getElementById('senslabel').textContent = Math.round(s.sensitivity) + '  ' + SENS(s.sensitivity);
+  document.getElementById('save_contact_sheet').checked = !!s.save_contact_sheet;
+  document.getElementById('open_when_done').checked = !!s.open_when_done;
+  document.getElementById('write_directions').checked = !!s.write_directions;
+  document.getElementById('transcribe_narration').checked = !!s.transcribe_narration;
+  document.getElementById('export_pptx').checked = !!s.export_pptx;
+  document.getElementById('export_xlsx').checked = !!s.export_xlsx;
+  document.getElementById('pptx_cols').value = String(s.pptx_cols || 4);
+  document.getElementById('pptx_rows').value = String(s.pptx_rows || 2);
+  const r = document.querySelector('input[name=fmt][value="' + (s.image_format||'png') + '"]');
+  if (r) r.checked = true;
+  const ks = document.getElementById('keystate');
+  hasKey = !!keySet;
+  if (keySet && !ks.textContent) ks.innerHTML = '<span class="ok">設定済み</span>';
+  if (!keySet && !ks.textContent) ks.textContent = '未設定（ローカル判定のみで動きます）';
+  if (s.output_dir && !lastOutputDir) lastOutputDir = s.output_dir;
+}
+['use_ai','model','save_contact_sheet','open_when_done',
+ 'write_directions','transcribe_narration','export_pptx','export_xlsx',
+ 'pptx_cols','pptx_rows'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => { settingsDirty = true; pushSettings(); });
+});
+document.querySelectorAll('input[name=fmt]').forEach(el =>
+  el.addEventListener('change', () => { settingsDirty = true; pushSettings(); }));
+const sens = document.getElementById('sensitivity');
+sens.addEventListener('input', () => {
+  settingsDirty = true;
+  document.getElementById('senslabel').textContent = Math.round(sens.value) + '  ' + SENS(sens.value);
+});
+sens.addEventListener('change', pushSettings);
+
+/* 「設定」を押したときだけキーを保存し、そのまま接続確認までやる */
+function applyKey(){
+  const el = document.getElementById('keystate');
+  const key = document.getElementById('api_key').value.trim();
+  if (!key){
+    el.innerHTML = '<span class="ng">キーが入力されていません</span>';
+    return Promise.resolve();
+  }
+  el.textContent = '確認中…';
+  return api('/api/settings', {api_key: key})
+    .then(() => api('/api/verify_key', {api_key: key}))
+    .then(r => {
+      el.innerHTML = (r.ok ? '<span class="ok">✓ 設定しました / ' : '<span class="ng">✗ ')
+                   + esc(r.message) + '</span>';
+      const dl = document.getElementById('modellist');
+      dl.innerHTML = (r.models || []).map(m => '<option value="' + m + '">').join('');
+      hasKey = !!r.ok;
+    });
+}
+
+async function deleteKey(){
+  const message = 'APIキーを削除します';
+  const detail = '保存されている Gemini の APIキーを消します。\n'
+               + '削除すると、AIによるカット選定・ト書き・ナレーションは使えなくなります。\n\n'
+               + '本当に削除していいですか？';
+  const ok = EL ? await window.cutgrab.confirm({message, detail, confirmLabel: '削除する'})
+                : window.confirm(message + '\n\n' + detail);
+  if (!ok) return;
+  await api('/api/settings', {api_key: ''});
+  document.getElementById('api_key').value = '';
+  document.getElementById('modellist').innerHTML = '';
+  document.getElementById('keystate').innerHTML = '<span class="ng">削除しました（未設定）</span>';
+  hasKey = false;
+}
+
+/* ---------- ファイル ---------- */
+function browse(){
+  if (EL) return window.cutgrab.chooseFiles().then(refresh);
+  return api('/api/browse').then(refresh);
+}
+document.getElementById('drop').addEventListener('click', () => {
+  if (EL) browse(); else document.getElementById('picker').click();
+});
+document.getElementById('picker').addEventListener('change', e => uploadAll(e.target.files));
+
+['dragenter','dragover'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault(); document.getElementById('drop').classList.add('over');
+}));
+['dragleave','drop'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault();
+  if (ev === 'drop' || e.target === document.getElementById('drop'))
+    document.getElementById('drop').classList.remove('over');
+}));
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  if (EL) {
+    const paths = window.cutgrab.pathsFor(e.dataTransfer.files);
+    if (paths.length) { window.cutgrab.addPaths(paths).then(refresh); return; }
+  }
+  uploadAll(e.dataTransfer.files);
+});
+
+async function uploadAll(fileList){
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  const st = document.getElementById('status');
+  for (let i = 0; i < files.length; i++){
+    st.textContent = '読み込み中… ' + files[i].name + ' (' + (i+1) + '/' + files.length + ')';
+    await fetch('/api/upload?t=' + TOKEN, {
+      method:'POST', headers: {'X-Filename': encodeURIComponent(files[i].name)}, body: files[i]
+    });
+  }
+  st.textContent = '';
+  refresh();
+}
+
+function renderFiles(files){
+  const ul = document.getElementById('files');
+  ul.innerHTML = '';
+  files.forEach((f, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="nm"></span>' +
+      (f.origin === 'upload' ? '<span class="tag">アップロード</span>' : '') +
+      '<button class="mini">削除</button>';
+    li.querySelector('.nm').textContent = f.name;
+    li.querySelector('button').onclick = () => api('/api/remove', {index: i}).then(refresh);
+    ul.appendChild(li);
+  });
+  document.getElementById('run').disabled = busy || files.length === 0;
+}
+
+/* ---------- 実行 ---------- */
+/* 書き出しのたびに保存先をたずねる。キャンセルなら何もしない。 */
+async function askOutputDir(){
+  if (!EL) return true;
+  const dir = await window.cutgrab.chooseOutputDir(lastOutputDir || '');
+  if (!dir){
+    document.getElementById('status').textContent = '書き出し先が選ばれなかったので中止しました';
+    return false;
+  }
+  lastOutputDir = dir;
+  await api('/api/settings', {output_mode: 'custom', output_dir: dir});
+  return true;
+}
+
+async function start(){
+  if (busy) return;
+  if (!(await askOutputDir())) return;
+  document.getElementById('log').textContent = '';
+  logShown = 0;
+  document.getElementById('results').innerHTML = '';
+  api('/api/start');
+}
+
+function renderResults(results){
+  const box = document.getElementById('results');
+  if (!results.length){ box.innerHTML = ''; return; }
+  box.innerHTML = results.map(r => {
+    const shots = r.cuts.map(c => `
+      <div class="shot">
+        <img src="${c.url}" loading="lazy" onclick="zoom('${c.url}')" alt="cut ${c.cut}">
+        <div class="meta">
+          ${c.narration ? '<div class="narration">' + esc(c.narration) + '</div>' : ''}
+          <div class="direction">${esc(c.direction) || '<span class="hint">（ト書きなし）</span>'}</div>
+          <div class="subline">
+            <b>カット ${String(c.cut).padStart(2,'0')}</b>
+            <span class="hint">${tc(c)} / ${dur(c)}</span>
+            <span class="badge ${c.chosen_by === 'ai' ? '' : 'local'}" title="${esc(c.reason)}">${c.chosen_by === 'ai' ? 'AI' : 'ローカル'}</span>
+          </div>
+        </div>
+      </div>`).join('');
+    const pptxBtn = r.pptx
+      ? `<button onclick="reveal('${r.pptx.replace(/'/g,"\\'")}')">コンテPPTXを開く</button>` : '';
+    const xlsxBtn = r.xlsx
+      ? `<button onclick="reveal('${r.xlsx.replace(/'/g,"\\'")}')">カット表Excelを開く</button>` : '';
+    return `<div class="card">
+      <h2>${esc(r.name)} — ${r.cuts.length} カット${r.ai_used ? '（AI: ' + esc(r.ai_model) + '）' : '（ローカル判定）'} / ${r.elapsed}秒</h2>
+      <div class="row" style="margin-bottom:12px">
+        <button onclick="reveal('${r.outdir.replace(/'/g,"\\'")}')">書き出し先を開く</button>
+        ${pptxBtn}
+        ${xlsxBtn}
+        <span class="hint">${esc(r.outdir)}</span>
+      </div>
+      <div class="shots">${shots}</div>
+    </div>`;
+  }).join('');
+}
+/* Premiere Pro と同じ HH:MM:SS:FF 表記 */
+function sf(total, fps){
+  const rate = Math.round(fps || 24) || 24;
+  const n = Math.max(0, Math.round(total));
+  const f = n % rate;
+  const totalSec = Math.floor(n / rate);
+  const s2 = totalSec % 60, m = Math.floor(totalSec / 60) % 60, h = Math.floor(totalSec / 3600);
+  const p = v => String(v).padStart(2, '0');
+  return p(h) + ':' + p(m) + ':' + p(s2) + ':' + p(f);
+}
+/* 書き出した絵が動画のどの位置か */
+function tc(c){
+  const rate = Math.round(c.fps || 24) || 24;
+  return sf(c.frame_index != null ? c.frame_index : (c.time || 0) * rate, c.fps);
+}
+function dur(c){
+  const rate = Math.round(c.fps || 24) || 24;
+  return sf(c.frames || (c.duration || 0) * rate, c.fps);
+}
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function reveal(path){
+  if (EL) return window.cutgrab.reveal(path);
+  return api('/api/reveal', {path: path});
+}
+function zoom(url){
+  document.getElementById('lightimg').src = url;
+  document.getElementById('lightbox').style.display = 'flex';
+}
+
+/* ---------- ポーリング ---------- */
+let lastResults = '';
+function refresh(){
+  return getState().then(s => {
+    busy = s.running;
+    renderFiles(s.files);
+    applySettings(s.settings, s.has_key);
+    document.getElementById('status').textContent = s.status;
+    document.getElementById('bar').firstElementChild.style.width = (s.progress * 100).toFixed(1) + '%';
+    document.getElementById('run').disabled = busy || s.files.length === 0;
+    document.getElementById('run').textContent = busy ? '処理中…' : 'カットを書き出す';
+    if (s.log.length){
+      const log = document.getElementById('log');
+      log.textContent += s.log.join('\n') + '\n';
+      log.scrollTop = log.scrollHeight;
+      logShown = s.log_total;
+    }
+    const sig = JSON.stringify(s.results.map(r => [r.name, r.cuts.length, r.pptx,
+                                                   r.cuts.map(c => c.direction).join('|')]));
+    if (sig !== lastResults){ lastResults = sig; renderResults(s.results); }
+  }).catch(() => {});
+}
+refresh();
+setInterval(() => refresh(), 500);
+</script>
+</body>
+</html>

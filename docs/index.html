@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:;
+               style-src 'self' 'unsafe-inline'; script-src 'self';
+               connect-src 'self' https://generativelanguage.googleapis.com;
+               worker-src 'self' blob:">
+<meta name="theme-color" content="#ff6c3c">
+<meta name="description" content="CM動画のカット変わりを検出して、各カットのベストな1枚・ト書き・ナレーション入りのコンテを作るツール">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cut List Maker">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="app.css">
+<title>Cut List Maker</title>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Cut List Maker</h1><span class="ver" id="ver"></span>
+    <div class="topbar">
+      <span class="pill" id="enginepill">エンジン確認中…</span>
+      <button class="mini" id="install" hidden>アプリとして入れる</button>
+    </div>
+  </header>
+
+  <div class="warn" id="unsupported" hidden></div>
+
+  <div class="card">
+    <h2>動画</h2>
+    <div id="drop">
+      <strong>ここに動画をドラッグ＆ドロップ</strong>
+      クリックしてファイルを選ぶこともできます（MP4 / MOV）
+    </div>
+    <ul class="files" id="files"></ul>
+    <div class="row" style="margin-top:12px">
+      <button id="browse">ファイルを選ぶ…</button>
+      <button id="clear">クリア</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <details open>
+      <summary>設定</summary>
+      <div class="grid" style="margin-top:16px">
+        <div>AI判定</div>
+        <div><label class="inline"><input type="checkbox" id="use_ai"> Gemini に「一番いい瞬間」を選ばせる</label></div>
+
+        <div>Gemini API キー</div>
+        <div class="row">
+          <input type="password" id="api_key" placeholder="キーを貼り付けて「設定」" autocomplete="off">
+          <button class="mini" id="apply_key">設定</button>
+          <button class="mini" id="delete_key">削除</button>
+          <span id="keystate" class="hint"></span>
+        </div>
+
+        <div>モデル</div>
+        <div class="row">
+          <input type="text" id="model" list="modellist" placeholder="空欄＝既定のモデル" style="max-width:260px">
+          <datalist id="modellist"></datalist>
+          <span class="hint">混雑・未提供のときは自動で次のモデルに切り替えます</span>
+        </div>
+
+        <div>ト書き</div>
+        <div><label class="inline"><input type="checkbox" id="write_directions">
+          選ばれた絵をAIが見て、CMコンテのト書きを自動生成する</label></div>
+
+        <div>ナレーション</div>
+        <div><label class="inline"><input type="checkbox" id="transcribe_narration">
+          音声を聞き取って、ナレーションを各カットに載せる</label></div>
+
+        <div>コンテPPTX</div>
+        <div class="row">
+          <label class="inline"><input type="checkbox" id="export_pptx"> 書き出す</label>
+          <span class="hint">1ページ</span>
+          <select id="pptx_cols"></select><span class="hint">列 ×</span>
+          <select id="pptx_rows"></select><span class="hint">行</span>
+        </div>
+
+        <div>カット表Excel</div>
+        <div><label class="inline"><input type="checkbox" id="export_xlsx">
+          記入欄つきのカット表（.xlsx）も書き出す</label></div>
+
+        <div>カット検出の細かさ</div>
+        <div class="row">
+          <input type="range" id="sensitivity" min="12" max="45" step="1">
+          <span class="hint" id="senslabel"></span>
+        </div>
+
+        <div>書き出し形式</div>
+        <div class="row">
+          <label class="inline"><input type="radio" name="fmt" value="png"> PNG（無劣化）</label>
+          <label class="inline"><input type="radio" name="fmt" value="jpg"> JPEG（軽い）</label>
+          <label class="inline"><input type="checkbox" id="save_contact_sheet"> 一覧シートも作る</label>
+        </div>
+      </div>
+
+      <div class="outbox">
+        <button class="mini" id="pick_dir">書き出し先を選ぶ…</button>
+        <span class="outpath" id="outpath"></span>
+      </div>
+      <p class="hint" style="margin-bottom:0" id="outhint"></p>
+    </details>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button class="primary" id="run">カットを書き出す</button>
+      <span id="status">待機中</span>
+    </div>
+    <div id="bar"><div></div></div>
+    <div id="log"></div>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<div id="lightbox"><img id="lightimg" alt=""></div>
+
+<input type="file" id="picker" accept="video/*,.mp4,.mov,.m4v" multiple hidden>
+
+<script src="vendor/mp4box.all.min.js"></script>
+<script src="vendor/pptxgen.bundle.js"></script>
+<script src="vendor/exceljs.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script type="module" src="js/ui.js"></script>
+</body>
+</html>
