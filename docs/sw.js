@@ -1,7 +1,7 @@
 /* オフラインでも開けるようにアプリ本体をキャッシュする。
  * 動画の解析はすべて端末の中で動くので、ネットが必要なのは Gemini を使うときだけ。 */
 
-const CACHE = 'cutlistmaker-v2.0.1';
+const CACHE = 'cutlistmaker-v2.0.2';
 
 const SHELL = [
   './',
@@ -53,22 +53,36 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;   // Gemini への通信は素通し
 
+  // アプリ本体（HTML / 自作 JS / CSS）は、つながっていれば必ず最新を取りに行く。
+  // キャッシュ優先にすると、直したはずの不具合が古いままになってしまう。
+  // 外部ライブラリは滅多に変わらないので、キャッシュを返しつつ裏で更新する。
+  const isAppCode = !url.pathname.includes('/vendor/');
+
+  if (isAppCode) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((hit) => hit || Response.error())),
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((hit) => {
-      if (hit) {
-        // 裏で更新を取りに行き、次回は新しいものを返す
-        fetch(request).then((response) => {
-          if (response.ok) caches.open(CACHE).then((cache) => cache.put(request, response));
-        }).catch(() => {});
-        return hit;
-      }
-      return fetch(request).then((response) => {
+      const network = fetch(request).then((response) => {
         if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(request, copy));
         }
         return response;
       });
+      return hit || network;
     }),
   );
 });
