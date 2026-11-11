@@ -8,7 +8,7 @@ import { formatTimecode, formatDuration } from './timecode.js';
 import * as gemini from './gemini.js';
 import { webCodecsAvailable } from './decode.js';
 
-export const VERSION = '2.0.2';
+export const VERSION = '2.0.3';
 
 const STORE_KEY = 'cutlistmaker.settings';
 const KEY_KEY = 'cutlistmaker.apikey';

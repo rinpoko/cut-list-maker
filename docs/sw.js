@@ -1,7 +1,7 @@
 /* オフラインでも開けるようにアプリ本体をキャッシュする。
  * 動画の解析はすべて端末の中で動くので、ネットが必要なのは Gemini を使うときだけ。 */
 
-const CACHE = 'cutlistmaker-v2.0.2';
+const CACHE = 'cutlistmaker-v2.0.3';
 
 const SHELL = [
   './',
@@ -34,7 +34,7 @@ const SHELL = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
+      .then((cache) => cache.addAll(SHELL.map((path) => new Request(path, { cache: 'reload' }))))
       .then(() => self.skipWaiting()),
   );
 });
@@ -59,8 +59,12 @@ self.addEventListener('fetch', (event) => {
   const isAppCode = !url.pathname.includes('/vendor/');
 
   if (isAppCode) {
+    // cache: 'no-cache' はブラウザの保存分を捨てるのではなく、サーバーに
+    // 「変わっていないか」を必ず確かめさせる指定。GitHub Pages は 10 分間
+    // 変更を見に行かない設定で配っているので、これが無いと直した直後の
+    // 10 分間は古いままになる。変わっていなければ 304 が返るだけで軽い。
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-cache' })
         .then((response) => {
           if (response.ok) {
             const copy = response.clone();
